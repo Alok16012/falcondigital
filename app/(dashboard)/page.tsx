@@ -14,18 +14,25 @@ import { StatusBadge } from "@/components/ui/Badge";
 export const dynamic = "force-dynamic";
 
 async function getStats() {
-  const [products, scheduled, posted, listings] = await Promise.all([
-    db.product.count(),
-    db.scheduledPost.count({ where: { status: "pending" } }),
-    db.scheduledPost.count({ where: { status: "posted" } }),
-    db.ecomListing.count({ where: { status: "listed" } }),
-  ]);
-  const recentPosts = await db.scheduledPost.findMany({
-    take: 4,
-    orderBy: { createdAt: "desc" },
-    include: { product: true },
-  });
-  return { products, scheduled, posted, listings, recentPosts };
+  try {
+    const [products, scheduled, posted, listings] = await Promise.all([
+      db.product.count(),
+      db.scheduledPost.count({ where: { status: "pending" } }),
+      db.scheduledPost.count({ where: { status: "posted" } }),
+      db.ecomListing.count({ where: { status: "listed" } }),
+    ]);
+    const recentPosts = await db.scheduledPost.findMany({
+      take: 4,
+      orderBy: { createdAt: "desc" },
+      include: { product: true },
+    });
+    return { products, scheduled, posted, listings, recentPosts };
+  } catch (e) {
+    // No database configured (e.g. fresh serverless deploy) — render empty
+    // state instead of crashing the whole page.
+    console.error("[dashboard] DB unavailable:", e);
+    return { products: 0, scheduled: 0, posted: 0, listings: 0, recentPosts: [] };
+  }
 }
 
 export default async function DashboardPage() {

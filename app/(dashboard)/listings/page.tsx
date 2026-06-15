@@ -5,12 +5,20 @@ import { getEcomPlatforms, getEcomConfigured } from "@/lib/ecom";
 export const dynamic = "force-dynamic";
 
 export default async function ListingsPage() {
-  const [products, listings, platforms, configured] = await Promise.all([
-    db.product.findMany({ orderBy: { createdAt: "desc" } }),
-    db.ecomListing.findMany({ orderBy: { createdAt: "desc" }, include: { product: true } }),
-    getEcomPlatforms(),
-    getEcomConfigured(),
-  ]);
+  let products: Awaited<ReturnType<typeof db.product.findMany>> = [];
+  let listings: Awaited<ReturnType<typeof db.ecomListing.findMany<{ include: { product: true } }>>> = [];
+  let platforms: Awaited<ReturnType<typeof getEcomPlatforms>> = [];
+  let configured: Awaited<ReturnType<typeof getEcomConfigured>> = {};
+  try {
+    [products, listings, platforms, configured] = await Promise.all([
+      db.product.findMany({ orderBy: { createdAt: "desc" } }),
+      db.ecomListing.findMany({ orderBy: { createdAt: "desc" }, include: { product: true } }),
+      getEcomPlatforms(),
+      getEcomConfigured(),
+    ]);
+  } catch (e) {
+    console.error("[listings] DB unavailable:", e);
+  }
 
   return (
     <ListingsClient

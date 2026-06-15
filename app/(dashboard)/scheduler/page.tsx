@@ -9,12 +9,20 @@ export default async function SchedulerPage({
 }: {
   searchParams: { productId?: string; poster?: string };
 }) {
-  const [products, posts, platforms, configured] = await Promise.all([
-    db.product.findMany({ orderBy: { createdAt: "desc" } }),
-    db.scheduledPost.findMany({ orderBy: { scheduledAt: "desc" }, include: { product: true } }),
-    getSocialPlatforms(),
-    getSocialConfigured(),
-  ]);
+  let products: Awaited<ReturnType<typeof db.product.findMany>> = [];
+  let posts: Awaited<ReturnType<typeof db.scheduledPost.findMany<{ include: { product: true } }>>> = [];
+  let platforms: Awaited<ReturnType<typeof getSocialPlatforms>> = [];
+  let configured: Awaited<ReturnType<typeof getSocialConfigured>> = {};
+  try {
+    [products, posts, platforms, configured] = await Promise.all([
+      db.product.findMany({ orderBy: { createdAt: "desc" } }),
+      db.scheduledPost.findMany({ orderBy: { scheduledAt: "desc" }, include: { product: true } }),
+      getSocialPlatforms(),
+      getSocialConfigured(),
+    ]);
+  } catch (e) {
+    console.error("[scheduler] DB unavailable:", e);
+  }
 
   return (
     <SchedulerClient
